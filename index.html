@@ -88,21 +88,31 @@
             border: 1px solid #ccc;
             border-radius: 8px;
             overflow: hidden;
+            display: block; /* Thêm display block */
+            overflow-x: auto;  /* Thêm overflow x auto */
         }
 
+        #schedule-table thead {
+             display: table-row-group;
+        }
         #schedule-table thead th {
             background-color: #f0f0f0;
             padding: 12px;
             text-align: center;
             border-bottom: 2px solid #ccc;
             color: #333;
+             display: table-cell;
         }
 
+        #schedule-table tbody {
+            display: table-row-group;
+        }
         #schedule-table tbody td {
             padding: 10px;
             border: 1px solid #ddd;
             text-align: center;
             vertical-align: top;
+             display: table-cell;
         }
 
         #schedule-table tbody td {
@@ -179,8 +189,12 @@
             #schedule-table tbody tr,
             #schedule-table td,
             #schedule-table th {
-                display: block;
+                display: table-cell; /* Thay đổi từ block thành table-cell */
                 width: auto;
+            }
+             #schedule-table thead tr,
+            #schedule-table tbody tr{
+                 display: table-row;
             }
 
         }
