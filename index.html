@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thời Khóa Biểu Cá Nhân</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.11/dist/interact.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        #root {
+            width: 100%;
+        }
+
+        .container {
+            max-width: 1200px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        #schedule-form {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #e9ecef;
+            border-radius: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        #schedule-form label {
+            margin-right: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        #subject-name,
+        #subject-time,
+        #subject-note {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-right: 10px;
+            flex: 1 150px;
+            box-sizing: border-box;
+        }
+
+        #add-subject {
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        #add-subject:hover {
+            background-color: #0056b3;
+        }
+
+        #schedule-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        #schedule-table thead th {
+            background-color: #f0f0f0;
+            padding: 12px;
+            text-align: center;
+            border-bottom: 2px solid #ccc;
+            color: #333;
+        }
+
+        #schedule-table tbody td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: center;
+            vertical-align: top;
+        }
+
+        #schedule-table tbody td {
+            min-height: 80px;
+        }
+
+        .subject-item {
+            background-color: #e0f7fa;
+            border: 1px solid #b2ebf2;
+            margin: 2px 0;
+            padding: 5px;
+            border-radius: 4px;
+            cursor: grab;
+            display: inline-block;
+            width: 90%;
+            text-align: left;
+            word-wrap: break-word;
+            font-size: 0.9em;
+            line-height: 1.2em;
+            display: flex; /* Thêm flexbox để căn chỉnh nút xóa */
+            justify-content: space-between; /* Đẩy nội dung và nút xóa ra hai đầu */
+            align-items: center; /* Căn chỉnh theo chiều dọc */
+        }
+
+        .subject-item:active {
+            cursor: grabbing;
+        }
+
+        .day-header {
+            background-color: #f0f0f0;
+            padding: 12px;
+            text-align: center;
+            border-bottom: 2px solid #ccc;
+            color: #333;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            #schedule-form {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            #subject-name,
+            #subject-time,
+            #subject-note {
+                margin-right: 0;
+                margin-bottom: 10px;
+                flex: 1 100%;
+            }
+
+            #add-subject {
+                flex: 1 100%;
+            }
+
+            #schedule-table thead th,
+            #schedule-table tbody td {
+                padding: 8px;
+                font-size: 0.9em;
+            }
+
+            .subject-item {
+                font-size: 0.8em;
+                padding: 4px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            #schedule-table thead th,
+            #schedule-table tbody td {
+                display: block;
+                width: 100%;
+                text-align: center;
+            }
+
+            .day-header {
+                display: block;
+                width: 100%;
+                text-align: center;
+            }
+        }
+
+        .delete-button {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 2px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.7em;
+            line-height: 1;
+        }
+
+        .delete-button:hover {
+            background-color: #d32f2f;
+        }
+
+        .edit-mode {
+            background-color: #fff;
+            border: 1px solid #007bff;
+            padding: 2px;
+            border-radius: 4px;
+            width: 80%;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const daysOfWeek = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
+
+        function App() {
+            const [subjects, setSubjects] = React.useState(() => {
+                if (typeof window !== 'undefined') {
+                    const savedSubjects = localStorage.getItem('subjects');
+                    return savedSubjects ? JSON.parse(savedSubjects) : [];
+                }
+                return [];
+            });
+            const [schedule, setSchedule] = React.useState(() => {
+                if (typeof window !== 'undefined') {
+                    const savedSchedule = localStorage.getItem('schedule');
+                    try {
+                        return savedSchedule ? JSON.parse(savedSchedule) : {
+                            'Thứ 2': [],
+                            'Thứ 3': [],
+                            'Thứ 4': [],
+                            'Thứ 5': [],
+                            'Thứ 6': [],
+                            'Thứ 7': [],
+                            'Chủ nhật': []
+                        };
+                    } catch (error) {
+                        console.error("Error parsing saved schedule:", error);
+                        return {
+                            'Thứ 2': [],
+                            'Thứ 3': [],
+                            'Thứ 4': [],
+                            'Thứ 5': [],
+                            'Thứ 6': [],
+                            'Thứ 7': [],
+                            'Chủ nhật': []
+                        };
+                    }
+                }
+                return {
+                    'Thứ 2': [],
+                    'Thứ 3': [],
+                    'Thứ 4': [],
+                    'Thứ 5': [],
+                    'Thứ 6': [],
+                    'Thứ 7': [],
+                    'Chủ nhật': []
+                };
+            });
+            const [subjectName, setSubjectName] = React.useState('');
+            const [subjectTime, setSubjectTime] = React.useState('');
+            const [subjectNote, setSubjectNote] = React.useState('');
+            const scheduleRef = React.useRef(schedule);
+            const [editingSubjectId, setEditingSubjectId] = React.useState(null);
+            const [editedSubjectName, setEditedSubjectName] = React.useState('');
+            const [editedSubjectTime, setEditedSubjectTime] = React.useState('');
+            const [editedSubjectNote, setEditedSubjectNote] = React.useState('');
+
+
+            React.useEffect(() => {
+                scheduleRef.current = schedule;
+            }, [schedule]);
+
+            React.useEffect(() => {
+                if (typeof window !== 'undefined') {
+                    localStorage.setItem('subjects', JSON.stringify(subjects));
+                    localStorage.setItem('schedule', JSON.stringify(schedule));
+                }
+            }, [subjects, schedule]);
+
+            const handleAddSubject = () => {
+                if (subjectName.trim() && subjectTime.trim()) {
+                    const newSubject = {
+                        id: Date.now(),
+                        name: subjectName,
+                        time: subjectTime,
+                        note: subjectNote,
+                    };
+
+                    // Cập nhật danh sách môn học
+                    const updatedSubjects = [...subjects, newSubject];
+                    setSubjects(updatedSubjects);
+
+                    // Thêm môn học mới vào ngày mặc định (Thứ 2) hoặc ngày đầu tiên có sẵn
+                    const firstAvailableDay = Object.keys(schedule)[0]; // Lấy ngày đầu tiên trong tuần
+                    const updatedSchedule = {
+                        ...schedule
+                    };
+
+                    // Thêm vào ngày đầu tiên
+                    updatedSchedule[firstAvailableDay] = [...(updatedSchedule[firstAvailableDay] || []), newSubject];
+                    setSchedule(updatedSchedule);
+
+                    setSubjectName('');
+                    setSubjectTime('');
+                    setSubjectNote('');
+                } else {
+                    alert('Vui lòng nhập tên môn học và thời gian.');
+                }
+            };
+
+           const handleDrop = (event, day) => {
+                const subjectId = parseInt(event.dataTransfer.getData('text/plain'));
+                const subjectToMove = subjects.find(sub => sub.id === subjectId);
+
+                if (!subjectToMove) return;
+
+                const currentSchedule = {
+                    ...scheduleRef.current
+                };
+                let sourceDay = '';
+                for (const d in currentSchedule) {
+                    if (currentSchedule[d].find(sub => sub.id === subjectId)) {
+                        sourceDay = d;
+                        break;
+                    }
+                }
+
+                if (sourceDay) {
+                    const updatedSourceDay = currentSchedule[sourceDay].filter(sub => sub.id !== subjectId);
+                    const updatedDestinationDay = [...(currentSchedule[day] || []), subjectToMove];
+
+                    setSchedule(prevSchedule => ({
+                        ...prevSchedule,
+                        [sourceDay]: updatedSourceDay,
+                        [day]: updatedDestinationDay,
+                    }));
+                }
+            };
+
+            const exportToGoogleSheets = () => {
+                const data = {
+                    schedule: schedule,
+                };
+
+                fetch('https://script.google.com/macros/s/AKfycbzLhaB9T9KED9t9j6JgBEd-oKzJp5kKzF6e5LWhzLz-EdTzK-yKxM/exec', { // Thay bằng Web App URL của bạn
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(data),
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.success) {
+                            alert('Thời khóa biểu đã được xuất thành công!');
+                        } else {
+                            alert('Có lỗi xảy ra khi xuất thời khóa biểu.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Lỗi:', error);
+                        alert('Có lỗi xảy ra khi xuất thời khóa biểu.');
+                    });
+            };
+
+            const exportToTxt = () => {
+                let text = "Thời Khóa Biểu\n\n";
+                daysOfWeek.forEach(day => {
+                    text += `${day}:\n`;
+                    if (schedule[day] && schedule[day].length > 0) {
+                        schedule[day].forEach(subject => {
+                            text += `  - ${subject.name} (${subject.time}) - ${subject.note}\n`;
+                        });
+                    } else {
+                        text += "  Không có môn học\n";
+                    }
+                    text += "\n";
+                });
+                const blob = new Blob([text], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'thoi_khoa_bieu.txt';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            };
+
+            const deleteSubject = (subjectId) => {
+                setSubjects(prevSubjects => prevSubjects.filter(subject => subject.id !== subjectId));
+
+                setSchedule(prevSchedule => {
+                    const updatedSchedule = { ...prevSchedule };
+                    for (const day in updatedSchedule) {
+                        updatedSchedule[day] = updatedSchedule[day].filter(subject => subject.id !== subjectId);
+                    }
+                    return updatedSchedule;
+                });
+            };
+
+            const startEditingSubject = (subject) => {
+                setEditingSubjectId(subject.id);
+                setEditedSubjectName(subject.name);
+                setEditedSubjectTime(subject.time);
+                setEditedSubjectNote(subject.note);
+            };
+
+            const finishEditingSubject = (subjectId, day) => {
+                setSubjects(prevSubjects =>
+                    prevSubjects.map(subject =>
+                        subject.id === subjectId
+                            ? { ...subject, name: editedSubjectName, time: editedSubjectTime, note: editedSubjectNote }
+                            : subject
+                    )
+                );
+
+                setSchedule(prevSchedule => {
+                    const updatedSchedule = { ...prevSchedule };
+                    const daySchedule = updatedSchedule[day];
+                    if (daySchedule) {
+                        updatedSchedule[day] = daySchedule.map(subject =>
+                            subject.id === subjectId
+                                ? { ...subject, name: editedSubjectName, time: editedSubjectTime, note: editedSubjectNote }
+                                : subject
+                        );
+                    }
+                    return updatedSchedule;
+                });
+
+                setEditingSubjectId(null);
+                setEditedSubjectName('');
+                setEditedSubjectTime('');
+                setEditedSubjectNote('');
+            };
+
+            return ( <div className = "container" >
+                <h1> Thời Khóa Biểu </h1>
+                <div id = "schedule-form" >
+                    <label htmlFor = "subject-name" > Môn học: </label>
+                    <input type = "text"
+                    id = "subject-name"
+                    value = {
+                        subjectName
+                    }
+                    onChange = {
+                        (e) => setSubjectName(e.target.value)
+                    }
+                    placeholder = "Nhập tên môn học" /
+                        >
+                        <label htmlFor = "subject-time" > Thời gian: </label>
+                        <input type = "text"
+                        id = "subject-time"
+                        value = {
+                            subjectTime
+                        }
+                        onChange = {
+                            (e) => setSubjectTime(e.target.value)
+                        }
+                        placeholder = "Nhập thời gian" /
+                            >
+                            <label htmlFor = "subject-note" > Ghi chú: </label>
+                            <input type = "text"
+                            id = "subject-note"
+                            value = {
+                                subjectNote
+                            }
+                            onChange = {
+                                (e) => setSubjectNote(e.target.value)
+                            }
+                            placeholder = "Nhập ghi chú" /
+                                >
+                                <button id = "add-subject"
+                                onClick = {
+                                    handleAddSubject
+                                } > Thêm môn học </button>
+                                </div>
+                                <table id = "schedule-table" >
+                                <thead>
+                                <tr>
+                                {
+                                    daysOfWeek.map((day, index) => ( <th key = {
+                                            index
+                                        }
+                                        className = "day-header" > {
+                                            day
+                                        } </th>
+                                    ))
+                                } </tr>
+                                </thead>
+                                <tbody>
+                                <tr>
+                                {
+                                    daysOfWeek.map((day, index) => ( <td key = {
+                                            index
+                                        }
+                                        onDrop = {
+                                            (event) => handleDrop(event, day)
+                                        }
+                                        onDragOver = {
+                                            (event) => event.preventDefault()
+                                        } > {
+                                            schedule[day] && schedule[day].map((subject) => {
+                                                if (editingSubjectId === subject.id) {
+                                                    return (
+                                                        <div key={subject.id} className="subject-item">
+                                                            <input
+                                                                type="text"
+                                                                value={editedSubjectName}
+                                                                onChange={(e) => setEditedSubjectName(e.target.value)}
+                                                                className="edit-mode"
+                                                            />
+                                                            <input
+                                                                type="text"
+                                                                value={editedSubjectTime}
+                                                                onChange={(e) => setEditedSubjectTime(e.target.value)}
+                                                                 className="edit-mode"
+                                                            />
+                                                            <input
+                                                                type="text"
+                                                                value={editedSubjectNote}
+                                                                onChange={(e) => setEditedSubjectNote(e.target.value)}
+                                                                className="edit-mode"
+                                                            />
+                                                            <button
+                                                                onClick={() => finishEditingSubject(subject.id, day)}
+                                                            >
+                                                                Lưu
+                                                            </button>
+                                                            <button
+                                                                className="delete-button"
+                                                                onClick={() => deleteSubject(subject.id)}
+                                                            >
+                                                                Xóa
+                                                            </button>
+                                                        </div>
+                                                    );
+                                                }
+                                                return (
+                                                    <div
+                                                        key={subject.id}
+                                                        className="subject-item"
+                                                        draggable="true"
+                                                        data-subject-id={subject.id}
+                                                        onDragStart={(event) => {
+                                                            event.dataTransfer.setData('text/plain', subject.id.toString());
+                                                        }}
+                                                        onClick={() => startEditingSubject(subject)}
+                                                    >
+                                                        {subject.name} - {subject.time} <br/> {subject.note}
+                                                        <button
+                                                            className="delete-button"
+                                                            onClick={() => deleteSubject(subject.id)}
+                                                        >
+                                                            Xóa
+                                                        </button>
+                                                    </div>
+                                                );
+                                            })}
+                                        </td>
+                                    ))
+                                } </tr>
+                                </tbody>
+                                </table>
+                                <button onClick = {
+                                    exportToGoogleSheets
+                                } > Xuất ra Google Sheets </button>
+                                 <button onClick = {
+                                    exportToTxt
+                                } > Lưu vào TXT </button>
+                                </div>
+                            );
+                        }
+
+                        ReactDOM.render( < App / > , document.getElementById('root'));
+    </script>
+</body>
+</html>
