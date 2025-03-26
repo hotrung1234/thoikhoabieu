@@ -1,307 +1,374 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import ReactDOM from 'react-dom';
-
-const DAYS_OF_WEEK = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
-
-function SubjectModal({ subject, onSave, onClose, isEditing }) {
-    const [name, setName] = useState(subject?.name || '');
-    const [time, setTime] = useState(subject?.time || '');
-    const [note, setNote] = useState(subject?.note || '');
-
-    const handleSave = () => {
-        if (!name.trim() || !time.trim()) {
-            alert('Vui lòng nhập tên môn học và thời gian');
-            return;
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thời Khóa Biểu Cá Nhân</title>
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --background-color: #f8f9fa;
+            --text-color: #333;
         }
-        onSave({ 
-            id: subject?.id || Date.now(), 
-            name, 
-            time, 
-            note 
-        });
-    };
 
-    return (
-        <div className="modal">
-            <div className="modal-content">
-                <h2>{isEditing ? 'Chỉnh Sửa Môn Học' : 'Thêm Môn Học'}</h2>
-                <input 
-                    type="text" 
-                    placeholder="Tên môn học" 
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                />
-                <input 
-                    type="text" 
-                    placeholder="Thời gian" 
-                    value={time}
-                    onChange={(e) => setTime(e.target.value)}
-                />
-                <input 
-                    type="text" 
-                    placeholder="Ghi chú" 
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                />
-                <div className="modal-actions">
-                    <button onClick={handleSave}>Lưu</button>
-                    <button onClick={onClose}>Hủy</button>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .schedule-form {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .schedule-form input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            min-width: 150px;
+        }
+
+        .schedule-form button {
+            padding: 10px 15px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .schedule-form button:hover {
+            background-color: #0056b3;
+        }
+
+        .schedule-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .schedule-table th, .schedule-table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+            vertical-align: top;
+        }
+
+        .subject-item {
+            background-color: #e6f2ff;
+            border: 1px solid #b3d9ff;
+            margin: 5px 0;
+            padding: 10px;
+            border-radius: 4px;
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .subject-item .delete-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .modal-content input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .modal-actions button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            .schedule-form {
+                flex-direction: column;
+            }
+
+            .schedule-form input, 
+            .schedule-form button {
+                width: 100%;
+            }
+
+            .schedule-table {
+                display: block;
+                overflow-x: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Thời Khóa Biểu Cá Nhân</h1>
+        
+        <div class="schedule-form">
+            <input type="text" id="subjectName" placeholder="Tên môn học">
+            <input type="text" id="subjectTime" placeholder="Thời gian">
+            <input type="text" id="subjectNote" placeholder="Ghi chú">
+            <button onclick="addSubject()">Thêm Môn Học</button>
+        </div>
+
+        <table class="schedule-table" id="scheduleTable">
+            <thead>
+                <tr>
+                    <th>Thứ 2</th>
+                    <th>Thứ 3</th>
+                    <th>Thứ 4</th>
+                    <th>Thứ 5</th>
+                    <th>Thứ 6</th>
+                    <th>Thứ 7</th>
+                    <th>Chủ Nhật</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr id="scheduleRow"></tr>
+            </tbody>
+        </table>
+
+        <div id="editModal" class="modal">
+            <div class="modal-content">
+                <input type="text" id="editSubjectName" placeholder="Tên môn học">
+                <input type="text" id="editSubjectTime" placeholder="Thời gian">
+                <input type="text" id="editSubjectNote" placeholder="Ghi chú">
+                <div class="modal-actions">
+                    <button onclick="saveEditedSubject()">Lưu</button>
+                    <button onclick="closeModal()">Hủy</button>
                 </div>
             </div>
         </div>
-    );
-}
+    </div>
 
-function App() {
-    const [subjects, setSubjects] = useState(() => {
-        const savedSubjects = localStorage.getItem('subjects');
-        return savedSubjects ? JSON.parse(savedSubjects) : [];
-    });
+    <script>
+        const days = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ Nhật'];
+        let schedule = {};
+        let editingSubjectId = null;
+        let editingDay = null;
 
-    const [schedule, setSchedule] = useState(() => {
-        const savedSchedule = localStorage.getItem('schedule');
-        return savedSchedule ? JSON.parse(savedSchedule) : 
-            DAYS_OF_WEEK.reduce((acc, day) => ({ ...acc, [day]: [] }), {});
-    });
+        // Khởi tạo lịch
+        function initSchedule() {
+            days.forEach(day => {
+                schedule[day] = [];
+            });
+            renderSchedule();
+        }
 
-    const [modalSubject, setModalSubject] = useState(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
+        // Thêm môn học
+        function addSubject() {
+            const name = document.getElementById('subjectName').value;
+            const time = document.getElementById('subjectTime').value;
+            const note = document.getElementById('subjectNote').value;
 
-    useEffect(() => {
-        localStorage.setItem('subjects', JSON.stringify(subjects));
-        localStorage.setItem('schedule', JSON.stringify(schedule));
-    }, [subjects, schedule]);
-
-    const addSubject = useCallback((newSubject) => {
-        setSubjects(prev => [...prev, newSubject]);
-        setSchedule(prev => ({
-            ...prev,
-            [DAYS_OF_WEEK[0]]: [...prev[DAYS_OF_WEEK[0]], newSubject]
-        }));
-        setIsModalOpen(false);
-    }, []);
-
-    const updateSubject = useCallback((updatedSubject) => {
-        setSubjects(prev => 
-            prev.map(s => s.id === updatedSubject.id ? updatedSubject : s)
-        );
-        
-        setSchedule(prev => {
-            const newSchedule = {...prev};
-            for (let day in newSchedule) {
-                newSchedule[day] = newSchedule[day].map(s => 
-                    s.id === updatedSubject.id ? updatedSubject : s
-                );
+            if (!name || !time) {
+                alert('Vui lòng nhập tên môn học và thời gian');
+                return;
             }
-            return newSchedule;
-        });
-        
-        setIsModalOpen(false);
-    }, []);
 
-    const deleteSubject = useCallback((subjectId) => {
-        setSubjects(prev => prev.filter(s => s.id !== subjectId));
-        setSchedule(prev => {
-            const newSchedule = {...prev};
-            for (let day in newSchedule) {
-                newSchedule[day] = newSchedule[day].filter(s => s.id !== subjectId);
-            }
-            return newSchedule;
-        });
-    }, []);
+            const subject = {
+                id: Date.now(),
+                name,
+                time,
+                note
+            };
 
-    const moveSubject = useCallback((subject, sourceDay, targetDay) => {
-        setSchedule(prev => {
-            const newSchedule = {...prev};
-            newSchedule[sourceDay] = newSchedule[sourceDay].filter(s => s.id !== subject.id);
-            newSchedule[targetDay] = [...newSchedule[targetDay], subject];
-            return newSchedule;
-        });
-    }, []);
+            // Thêm vào ngày đầu tiên
+            schedule[days[0]].push(subject);
+            renderSchedule();
 
-    const renderScheduleTable = useMemo(() => {
-        return DAYS_OF_WEEK.map(day => (
-            <td 
-                key={day} 
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                    const subjectId = e.dataTransfer.getData('text/plain');
-                    const subject = subjects.find(s => s.id.toString() === subjectId);
-                    if (subject) {
-                        const sourceDay = Object.keys(schedule).find(d => 
-                            schedule[d].some(s => s.id.toString() === subjectId)
-                        );
-                        moveSubject(subject, sourceDay, day);
-                    }
-                }}
-            >
-                {schedule[day].map(subject => (
-                    <div 
-                        key={subject.id} 
-                        className="subject-item"
-                        draggable
-                        onDragStart={(e) => {
-                            e.dataTransfer.setData('text/plain', subject.id.toString());
-                        }}
-                        onClick={() => {
-                            setModalSubject(subject);
-                            setIsModalOpen(true);
-                        }}
-                    >
-                        <span>{subject.name} - {subject.time}</span>
-                        <button 
-                            className="delete-btn"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                deleteSubject(subject.id);
-                            }}
-                        >
-                            ✖
-                        </button>
-                    </div>
-                ))}
-            </td>
-        ));
-    }, [schedule, subjects, deleteSubject, moveSubject]);
+            // Xóa input
+            document.getElementById('subjectName').value = '';
+            document.getElementById('subjectTime').value = '';
+            document.getElementById('subjectNote').value = '';
+        }
 
-    return (
-        <div className="app-container">
-            <h1>Thời Khóa Biểu</h1>
-            <button 
-                className="add-subject-btn"
-                onClick={() => {
-                    setModalSubject(null);
-                    setIsModalOpen(true);
-                }}
-            >
-                Thêm Môn Học
-            </button>
+        // Render lịch học
+        function renderSchedule() {
+            const scheduleRow = document.getElementById('scheduleRow');
+            scheduleRow.innerHTML = '';
 
-            <table className="schedule-table">
-                <thead>
-                    <tr>
-                        {DAYS_OF_WEEK.map(day => (
-                            <th key={day}>{day}</th>
-                        ))}
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        {renderScheduleTable}
-                    </tr>
-                </tbody>
-            </table>
+            days.forEach(day => {
+                const td = document.createElement('td');
+                td.setAttribute('data-day', day);
+                
+                schedule[day].forEach(subject => {
+                    const subjectDiv = createSubjectElement(subject, day);
+                    td.appendChild(subjectDiv);
+                });
 
-            {isModalOpen && (
-                <SubjectModal 
-                    subject={modalSubject}
-                    onSave={modalSubject ? updateSubject : addSubject}
-                    onClose={() => setIsModalOpen(false)}
-                    isEditing={!!modalSubject}
-                />
-            )}
-        </div>
-    );
-}
+                td.addEventListener('dragover', dragOver);
+                td.addEventListener('drop', drop);
+                
+                scheduleRow.appendChild(td);
+            });
 
-function AppWrapper() {
-    const [styles, setStyles] = useState('');
+            saveSchedule();
+        }
 
-    useEffect(() => {
-        const fetchStyles = async () => {
-            const css = `
-                body { 
-                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-                    margin: 0;
-                    padding: 20px;
-                    background-color: #f4f4f4;
-                }
-                .app-container {
-                    max-width: 1200px;
-                    margin: 0 auto;
-                    background-color: white;
-                    padding: 20px;
-                    border-radius: 10px;
-                    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-                }
-                .schedule-table {
-                    width: 100%;
-                    border-collapse: collapse;
-                }
-                .schedule-table th, .schedule-table td {
-                    border: 1px solid #ddd;
-                    padding: 10px;
-                    text-align: center;
-                }
-                .subject-item {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    background-color: #e6f3ff;
-                    margin: 5px 0;
-                    padding: 10px;
-                    border-radius: 5px;
-                }
-                .delete-btn {
-                    background-color: #ff4d4d;
-                    color: white;
-                    border: none;
-                    padding: 5px 10px;
-                    border-radius: 3px;
-                }
-                .modal {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    background-color: rgba(0,0,0,0.5);
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                }
-                .modal-content {
-                    background-color: white;
-                    padding: 20px;
-                    border-radius: 10px;
-                    width: 90%;
-                    max-width: 500px;
-                }
-                .modal-content input {
-                    width: 100%;
-                    margin: 10px 0;
-                    padding: 10px;
-                    border: 1px solid #ddd;
-                    border-radius: 5px;
-                }
-                .modal-actions {
-                    display: flex;
-                    justify-content: space-between;
-                }
-                .modal-actions button {
-                    padding: 10px 20px;
-                    border: none;
-                    border-radius: 5px;
-                    cursor: pointer;
-                }
-                @media (max-width: 768px) {
-                    .schedule-table {
-                        display: block;
-                        overflow-x: auto;
-                    }
-                }
+        // Tạo phần tử môn học
+        function createSubjectElement(subject, day) {
+            const subjectDiv = document.createElement('div');
+            subjectDiv.className = 'subject-item';
+            subjectDiv.draggable = true;
+            subjectDiv.setAttribute('data-id', subject.id);
+            subjectDiv.setAttribute('data-day', day);
+
+            subjectDiv.innerHTML = `
+                <span>${subject.name} - ${subject.time}</span>
+                <button class="delete-btn" onclick="deleteSubject(${subject.id}, '${day}')">Xóa</button>
             `;
-            setStyles(css);
-        };
-        fetchStyles();
-    }, []);
 
-    return (
-        <>
-            <style>{styles}</style>
-            <App />
-        </>
-    );
-}
+            subjectDiv.addEventListener('dragstart', dragStart);
+            subjectDiv.addEventListener('click', () => openEditModal(subject, day));
 
-ReactDOM.render(<AppWrapper />, document.getElementById('root'));
+            return subjectDiv;
+        }
+
+        // Xóa môn học
+        function deleteSubject(id, day) {
+            schedule[day] = schedule[day].filter(subject => subject.id !== id);
+            renderSchedule();
+        }
+
+        // Kéo thả
+        function dragStart(e) {
+            e.dataTransfer.setData('text/plain', e.target.getAttribute('data-id'));
+            e.dataTransfer.setData('text/day', e.target.getAttribute('data-day'));
+        }
+
+        function dragOver(e) {
+            e.preventDefault();
+        }
+
+        function drop(e) {
+            e.preventDefault();
+            const id = e.dataTransfer.getData('text/plain');
+            const sourceDay = e.dataTransfer.getData('text/day');
+            const targetDay = e.target.closest('td').getAttribute('data-day');
+
+            const subject = schedule[sourceDay].find(s => s.id == id);
+            
+            // Xóa khỏi ngày cũ
+            schedule[sourceDay] = schedule[sourceDay].filter(s => s.id != id);
+            
+            // Thêm vào ngày mới
+            schedule[targetDay].push(subject);
+
+            renderSchedule();
+        }
+
+        // Chỉnh sửa môn học
+        function openEditModal(subject, day) {
+            editingSubjectId = subject.id;
+            editingDay = day;
+
+            document.getElementById('editSubjectName').value = subject.name;
+            document.getElementById('editSubjectTime').value = subject.time;
+            document.getElementById('editSubjectNote').value = subject.note || '';
+
+            document.getElementById('editModal').style.display = 'flex';
+        }
+
+        function saveEditedSubject() {
+            const name = document.getElementById('editSubjectName').value;
+            const time = document.getElementById('editSubjectTime').value;
+            const note = document.getElementById('editSubjectNote').value;
+
+            const subjectIndex = schedule[editingDay].findIndex(s => s.id === editingSubjectId);
+            
+            if (subjectIndex !== -1) {
+                schedule[editingDay][subjectIndex] = {
+                    id: editingSubjectId,
+                    name,
+                    time,
+                    note
+                };
+            }
+
+            renderSchedule();
+            closeModal();
+        }
+
+        function closeModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        // Lưu và load từ local storage
+        function saveSchedule() {
+            localStorage.setItem('personalSchedule', JSON.stringify(schedule));
+        }
+
+        function loadSchedule() {
+            const savedSchedule = localStorage.getItem('personalSchedule');
+            if (savedSchedule) {
+                schedule = JSON.parse(savedSchedule);
+                renderSchedule();
+            } else {
+                initSchedule();
+            }
+        }
+
+        // Khởi động
+        loadSchedule();
+    </script>
+</body>
+</html>
