@@ -122,9 +122,9 @@
             word-wrap: break-word;
             font-size: 0.9em;
             line-height: 1.2em;
-            display: flex; /* Thêm flexbox để căn chỉnh nút xóa */
-            justify-content: space-between; /* Đẩy nội dung và nút xóa ra hai đầu */
-            align-items: center; /* Căn chỉnh theo chiều dọc */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .subject-item:active {
@@ -171,6 +171,18 @@
                 font-size: 0.8em;
                 padding: 4px;
             }
+             #schedule-table {
+                display: block;
+                overflow-x: auto;
+            }
+            #schedule-table thead,
+            #schedule-table tbody tr,
+            #schedule-table td,
+            #schedule-table th {
+                display: block;
+                width: auto;
+            }
+
         }
 
         @media (max-width: 480px) {
@@ -348,7 +360,7 @@
                     schedule: schedule,
                 };
 
-                fetch('https://script.google.com/macros/s/AKfycbzLhaB9T9KED9t9j6JgBEd-oKzJp5kKzF6e5LWhzLz-EdTzK-yKxM/exec', { // Thay bằng Web App URL của bạn
+                fetch('https://script.google.com/macros/s/AKfycbzLhaB9T9KED9t9j6JgBEd-oKzJp5kKzF6e5LWhzLz-EdTzK-yKxM/exec', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
